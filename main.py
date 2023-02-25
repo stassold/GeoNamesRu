@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, render_template
 import pandas as pd
 from transliterate import translit
 
@@ -14,9 +14,20 @@ geonames_df = pd.read_csv('RU.txt', delimiter='\t', encoding='utf-8', header=Non
 app = Flask(__name__)
 
 
+@app.route('/')
+def index():
+    return render_template('index.html')
+
 # Define the route for getting city information by geonameid
-@app.route('/city/<int:geonameid>', methods=['GET'])
-def get_city_info(geonameid):
+@app.route('/city/', methods=['GET'])
+def get_city_info():
+    # Get the geonameid from the query parameters
+    geonameid = request.args.get('id', type=int)
+
+    # If no geonameid is provided, return a 400 error
+    if not geonameid:
+        return jsonify({'error': 'GeonameID parameter is missing.'}), 400
+
     # Get the row corresponding to the geonameid
     city_row = geonames_df[geonames_df['geonameid'] == geonameid]
 
@@ -61,7 +72,10 @@ def get_find_info():
 
     city1_row = geonames_df[geonames_df['name'] == city1]
     city2_row = geonames_df[geonames_df['name'] == city2]
-    print(city2_row)
+    city1_row = city1_row.sort_values(by='population', ascending=False)
+    city2_row = city2_row.sort_values(by='population', ascending=False)
+
+
     if city1_row.empty:
         return jsonify({'error': 'City not found.'}), 404
     if city2_row.empty:
